@@ -114,6 +114,14 @@ export default function JobApplyPage() {
       proposalData.budget = budgetValue;
       proposalData.proposed_budget = budgetValue;
       
+      // Always set freelancer_name
+      proposalData.freelancer_name = user.username;
+      
+      // Add wallet address if connected
+      if (isConnected && address) {
+        proposalData.wallet_address = address;
+      }
+      
       // Add timeline field (always set both timeline and proposed_timeline)
       proposalData.timeline = timeline;
       proposalData.proposed_timeline = timeline;

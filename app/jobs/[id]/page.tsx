@@ -118,12 +118,43 @@ export default function JobDetailsPage() {
 
     setIsCreatingEscrow(true)
     try {
+      // First, check if there's an accepted proposal for this job
+      const { data: acceptedProposal, error: proposalError } = await supabase
+        .from("proposals")
+        .select("freelancer_id, freelancer_name, wallet_address")
+        .eq("job_id", job.id)
+        .eq("status", "accepted")
+        .single();
+      
+      if (proposalError && proposalError.code !== 'PGRST116') {
+        throw new Error(`Error fetching accepted proposal: ${proposalError.message}`);
+      }
+      
+      // If no accepted proposal, show a message to the user
+      if (!acceptedProposal) {
+        toast({
+          title: "No Accepted Proposal",
+          description: "Please accept a proposal before creating an escrow.",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      // Check if the freelancer has a wallet address
+      if (!acceptedProposal.wallet_address) {
+        toast({
+          title: "Missing Wallet Address",
+          description: `The freelancer (${acceptedProposal.freelancer_name}) doesn't have a wallet address set up.`,
+          variant: "destructive",
+        });
+        return;
+      }
+      
       // Create a transaction block
       const tx = new Transaction()
       
-      // Get a valid freelancer address - for now using a placeholder
-      // In a real app, you would get this from the job data or user selection
-      const freelancerAddress = "0x2345678901abcdef2345678901abcdef23456789";
+      // Use the freelancer's wallet address from the accepted proposal
+      const freelancerAddress = acceptedProposal.wallet_address;
       
       // Convert job ID to a number
       const jobIdNumber = parseInt(job.id);
@@ -284,6 +315,38 @@ export default function JobDetailsPage() {
 
     setIsReleasingFunds(true)
     try {
+      // First, check if there's an accepted proposal for this job
+      const { data: acceptedProposal, error: proposalError } = await supabase
+        .from("proposals")
+        .select("freelancer_id, freelancer_name, wallet_address")
+        .eq("job_id", job.id)
+        .eq("status", "accepted")
+        .single();
+      
+      if (proposalError && proposalError.code !== 'PGRST116') {
+        throw new Error(`Error fetching accepted proposal: ${proposalError.message}`);
+      }
+      
+      // If no accepted proposal, show a message to the user
+      if (!acceptedProposal) {
+        toast({
+          title: "No Accepted Proposal",
+          description: "Please accept a proposal before releasing funds.",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      // Check if the freelancer has a wallet address
+      if (!acceptedProposal.wallet_address) {
+        toast({
+          title: "Missing Wallet Address",
+          description: `The freelancer (${acceptedProposal.freelancer_name}) doesn't have a wallet address set up.`,
+          variant: "destructive",
+        });
+        return;
+      }
+      
       // Create a transaction block
       const tx = new Transaction()
       
@@ -293,8 +356,8 @@ export default function JobDetailsPage() {
         arguments: [tx.object(job.escrow_id)],
       })
       
-      // Get a valid freelancer address - for now using a placeholder
-      const freelancerAddress = "0x2345678901abcdef2345678901abcdef23456789";
+      // Use the freelancer's wallet address from the accepted proposal
+      const freelancerAddress = acceptedProposal.wallet_address;
       
       // Transfer the coin to the freelancer
       tx.transferObjects([coin], tx.pure(freelancerAddress))

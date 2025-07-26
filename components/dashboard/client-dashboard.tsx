@@ -395,6 +395,15 @@ export default function ClientDashboard() {
                 )}
               </Button>
             </Link>
+            <Link href="/escrow">
+              <Button
+                variant="outline"
+                className="w-full h-20 border-gray-600 text-gray-300 hover:bg-gray-700 flex-col bg-transparent"
+              >
+                <Shield className="h-6 w-6 mb-2" />
+                Manage Escrow
+              </Button>
+            </Link>
             <Link href="/profile">
               <Button
                 variant="outline"

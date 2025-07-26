@@ -138,6 +138,18 @@ BEGIN
     END IF;
 END $$;
 
+-- Add wallet_address column to proposals table if it doesn't exist
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1
+        FROM information_schema.columns
+        WHERE table_name = 'proposals' AND column_name = 'wallet_address'
+    ) THEN
+        ALTER TABLE proposals ADD COLUMN wallet_address TEXT;
+    END IF;
+END $$;
+
 -- Add trigger to keep cover_letter and description in sync
 DO $$
 BEGIN

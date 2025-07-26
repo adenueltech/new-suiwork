@@ -134,7 +134,9 @@ export default function ProposalSystem({ jobId, jobTitle, isJobOwner = false }: 
       const proposalDataToInsert: any = {
         job_id: jobId,
         freelancer_id: user.id,
-        status: "pending"
+        status: "pending",
+        freelancer_name: user.username, // Always set freelancer_name
+        wallet_address: address // Add the wallet address from the connected wallet
       }
       
       // Add budget field (always set both budget and proposed_budget)
@@ -260,10 +262,10 @@ export default function ProposalSystem({ jobId, jobTitle, isJobOwner = false }: 
                   <div className="flex items-start space-x-4">
                     <Avatar className="w-12 h-12">
                       <AvatarImage src={proposal.freelancer_avatar || "/placeholder.svg"} />
-                      <AvatarFallback>{proposal.freelancer_name[0]}</AvatarFallback>
+                      <AvatarFallback>{proposal.freelancer_name ? proposal.freelancer_name[0] : user?.username?.[0] || 'F'}</AvatarFallback>
                     </Avatar>
                     <div>
-                      <h3 className="text-xl font-semibold text-cyan-100">{proposal.freelancer_name}</h3>
+                      <h3 className="text-xl font-semibold text-cyan-100">{proposal.freelancer_name || user?.username || "Freelancer"}</h3>
                       <div className="flex items-center space-x-2 text-sm text-cyan-100/70">
                         {proposal.freelancer_rating && (
                           <div className="flex items-center space-x-1">

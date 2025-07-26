@@ -15,7 +15,7 @@ const inter = Inter({ subsets: ["latin"] })
 export const metadata: Metadata = {
   title: "SuiWork - Decentralized Freelance Platform",
   description: "The future of freelancing on SUI blockchain with smart contract escrow and NFT reputation system",
-    generator: 'v0.dev'
+  
 }
 
 export default function RootLayout({

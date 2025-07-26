@@ -23,7 +23,6 @@ export default function HeroSection() {
 
   return (
     <section className="relative pt-32 pb-20 overflow-hidden">
-      {/* Animated Background Elements */}
       <div className="absolute inset-0 overflow-hidden">
         <div className="absolute -top-40 -right-40 w-80 h-80 bg-cyan-500/10 rounded-full blur-3xl animate-pulse-slow"></div>
         <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-blue-500/10 rounded-full blur-3xl animate-pulse-slow"></div>
@@ -31,20 +30,17 @@ export default function HeroSection() {
 
       <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center">
-          {/* Main Heading */}
           <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold mb-6">
             <span className="text-white">The Future of</span>
             <br />
-            <span className="text-cyan-400 animate-glow">Web3 Freelancing</span>
+            <span className="text-cyan-400">Web3 Freelancing</span>
           </h1>
 
-          {/* Subtitle */}
           <p className="text-xl md:text-2xl text-cyan-100 mb-8 max-w-3xl mx-auto leading-relaxed">
             Decentralized freelance platform on SUI blockchain with smart contract escrow, Creator NFTs, and zero
             middleman fees.
           </p>
 
-          {/* CTA Buttons */}
           <div className="flex flex-col sm:flex-row gap-4 justify-center mb-16">
             {isConnected ? (
               <Button
@@ -73,7 +69,6 @@ export default function HeroSection() {
             </Link>
           </div>
 
-          {/* Feature Cards */}
           <div className="grid md:grid-cols-3 gap-8 max-w-4xl mx-auto">
             <div className="bg-gray-900/50 backdrop-blur-sm border border-cyan-500/20 rounded-xl p-6 transition-all duration-300 hover:border-cyan-400/40 hover:scale-105 animate-float">
               <Shield className="text-cyan-400 w-12 h-12 mx-auto mb-4" />

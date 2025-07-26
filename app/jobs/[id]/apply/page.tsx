@@ -109,27 +109,18 @@ export default function JobApplyPage() {
         status: "pending"
       }
       
-      // Add budget field (could be budget or proposed_budget)
-      if (columnInfo && 'proposed_budget' in columnInfo) {
-        proposalData.proposed_budget = parseFloat(budget)
-      } else {
-        proposalData.budget = parseFloat(budget)
-      }
+      // Add budget field (always set both budget and proposed_budget)
+      const budgetValue = parseFloat(budget);
+      proposalData.budget = budgetValue;
+      proposalData.proposed_budget = budgetValue;
       
-      // Add timeline field (could be timeline or proposed_timeline)
-      if (columnInfo && 'proposed_timeline' in columnInfo) {
-        proposalData.proposed_timeline = timeline
-      } else {
-        proposalData.timeline = timeline
-      }
+      // Add timeline field (always set both timeline and proposed_timeline)
+      proposalData.timeline = timeline;
+      proposalData.proposed_timeline = timeline;
       
-      // Add cover letter field
-      if (columnInfo && 'cover_letter' in columnInfo) {
-        proposalData.cover_letter = coverLetter
-      } else {
-        // Fallback to description if cover_letter doesn't exist
-        proposalData.description = coverLetter
-      }
+      // Add cover letter field (always set both cover_letter and description)
+      proposalData.cover_letter = coverLetter;
+      proposalData.description = coverLetter;
       
       // Add freelancer_name if the column exists
       if (columnInfo && 'freelancer_name' in columnInfo) {

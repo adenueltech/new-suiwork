@@ -1,157 +1,17 @@
 "use client"
 
-import { createContext, useContext, useState, useEffect, type ReactNode } from "react"
+// This file now serves as a compatibility layer that re-exports the dApp Kit functionality
+// with the same interface as the previous wallet provider
+import { ReactNode } from "react"
+import { useSuiWallet } from "@/hooks/use-sui-wallet"
+import { SuiConnectButton } from "./sui-connect-button"
 
-interface WalletContextType {
-  isConnected: boolean
-  isConnecting: boolean
-  address: string | null
-  balance: number
-  connect: () => Promise<void>
-  disconnect: () => void
-  signTransaction: (transaction: any) => Promise<string>
-  signMessage: (message: string) => Promise<string>
-  refreshBalance: () => Promise<void>
-  getCoins: (amount?: number) => Promise<string[]>
-}
-
-const WalletContext = createContext<WalletContextType | undefined>(undefined)
-
-export function WalletProvider({ children }: { children: ReactNode }) {
-  const [isConnected, setIsConnected] = useState(false)
-  const [isConnecting, setIsConnecting] = useState(false)
-  const [address, setAddress] = useState<string | null>(null)
-  const [balance, setBalance] = useState(0)
-
-  // Check for saved connection on mount
-  useEffect(() => {
-    const savedConnection = localStorage.getItem("wallet_connected")
-    const savedAddress = localStorage.getItem("wallet_address")
-    const savedBalance = localStorage.getItem("wallet_balance")
-
-    if (savedConnection === "true" && savedAddress) {
-      setIsConnected(true)
-      setAddress(savedAddress)
-      setBalance(savedBalance ? Number.parseFloat(savedBalance) : 100.5)
-    }
-  }, [])
-
-  const connect = async () => {
-    setIsConnecting(true)
-
-    // Simulate connection delay
-    await new Promise((resolve) => setTimeout(resolve, 1500))
-
-    // Generate mock address
-    const mockAddress = "0x" + Math.random().toString(16).substr(2, 40)
-    const mockBalance = 100.5 + Math.random() * 50
-
-    setIsConnected(true)
-    setAddress(mockAddress)
-    setBalance(mockBalance)
-    setIsConnecting(false)
-
-    // Save to localStorage
-    localStorage.setItem("wallet_connected", "true")
-    localStorage.setItem("wallet_address", mockAddress)
-    localStorage.setItem("wallet_balance", mockBalance.toString())
-
-    console.log("Mock wallet connected:", mockAddress)
-  }
-
-  const disconnect = () => {
-    setIsConnected(false)
-    setAddress(null)
-    setBalance(0)
-
-    // Clear localStorage
-    localStorage.removeItem("wallet_connected")
-    localStorage.removeItem("wallet_address")
-    localStorage.removeItem("wallet_balance")
-
-    console.log("Mock wallet disconnected")
-  }
-
-  const signTransaction = async (transaction: any): Promise<string> => {
-    if (!isConnected) {
-      throw new Error("Wallet not connected")
-    }
-
-    // Simulate transaction signing
-    await new Promise((resolve) => setTimeout(resolve, 1000))
-
-    const mockTxHash = "0x" + Math.random().toString(16).substr(2, 64)
-    console.log("Mock transaction signed:", mockTxHash)
-
-    // Simulate balance change
-    const newBalance = balance - 0.1 // Small fee
-    setBalance(newBalance)
-    localStorage.setItem("wallet_balance", newBalance.toString())
-
-    return mockTxHash
-  }
-
-  const signMessage = async (message: string): Promise<string> => {
-    if (!isConnected) {
-      throw new Error("Wallet not connected")
-    }
-
-    // Simulate message signing
-    await new Promise((resolve) => setTimeout(resolve, 500))
-
-    const mockSignature = "0x" + Math.random().toString(16).substr(2, 128)
-    console.log("Mock message signed:", message, "->", mockSignature)
-
-    return mockSignature
-  }
-
-  const refreshBalance = async () => {
-    if (!isConnected) return
-
-    // Simulate balance refresh
-    await new Promise((resolve) => setTimeout(resolve, 500))
-
-    const newBalance = 100 + Math.random() * 100
-    setBalance(newBalance)
-    localStorage.setItem("wallet_balance", newBalance.toString())
-  }
-
-  const getCoins = async (amount?: number): Promise<string[]> => {
-    if (!isConnected) {
-      throw new Error("Wallet not connected")
-    }
-
-    // Simulate getting coin objects
-    const mockCoins = Array.from({ length: 5 }, () => "0x" + Math.random().toString(16).substr(2, 40))
-
-    return mockCoins
-  }
-
-  const contextValue: WalletContextType = {
-    isConnected,
-    isConnecting,
-    address,
-    balance,
-    connect,
-    disconnect,
-    signTransaction,
-    signMessage,
-    refreshBalance,
-    getCoins,
-  }
-
-  return <WalletContext.Provider value={contextValue}>{children}</WalletContext.Provider>
-}
-
+// Re-export the hook with the old name for backward compatibility
 export function useWallet() {
-  const context = useContext(WalletContext)
-  if (context === undefined) {
-    throw new Error("useWallet must be used within a WalletProvider")
-  }
-  return context
+  return useSuiWallet()
 }
 
-// Wallet connection component
+// Re-export the wallet connect button with the old name
 export function WalletConnectButton({
   className = "",
   variant = "default",
@@ -161,52 +21,14 @@ export function WalletConnectButton({
   variant?: "default" | "outline" | "ghost"
   children?: ReactNode
 }) {
-  const { isConnected, isConnecting, address, balance, connect, disconnect } = useWallet()
-
-  if (isConnected && address) {
-    return (
-      <div className={`flex items-center gap-2 ${className}`}>
-        <div className="text-sm">
-          <div className="font-medium text-white">{`${address.slice(0, 6)}...${address.slice(-4)}`}</div>
-          <div className="text-gray-300">{balance.toFixed(4)} SUI</div>
-        </div>
-        <button
-          onClick={disconnect}
-          className="px-3 py-1 text-sm bg-red-500 text-white rounded hover:bg-red-600 transition-colors"
-        >
-          Disconnect
-        </button>
-      </div>
-    )
-  }
-
   return (
-    <button
-      onClick={connect}
-      disabled={isConnecting}
-      className={`px-6 py-3 rounded-full font-semibold transition-all duration-300 transform hover:scale-105 ${
-        variant === "outline"
-          ? "border border-gray-300 text-gray-700 hover:bg-gray-50"
-          : variant === "ghost"
-            ? "text-gray-700 hover:bg-gray-100"
-            : "bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700 text-white shadow-lg hover:shadow-cyan-500/25"
-      } ${isConnecting ? "opacity-50 cursor-not-allowed" : ""} ${className}`}
-    >
-      {isConnecting ? (
-        <div className="flex items-center">
-          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-          Connecting...
-        </div>
-      ) : (
-        children || "Connect Wallet"
-      )}
-    </button>
+    <SuiConnectButton />
   )
 }
 
 // Wallet status component
 export function WalletStatus() {
-  const { isConnected, address, balance, refreshBalance } = useWallet()
+  const { isConnected, address, balance, refreshBalance } = useSuiWallet()
 
   if (!isConnected) {
     return (
@@ -249,3 +71,5 @@ export const suiToMist = (sui: number): number => {
 export const mistToSui = (mist: number): number => {
   return mist / 1_000_000_000
 }
+
+// No need to export WalletProvider anymore as we're using SuiWalletProvider directly

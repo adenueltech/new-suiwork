@@ -1,12 +1,15 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Shield, Clock, CheckCircle, AlertCircle, DollarSign } from "lucide-react"
-import { useWallet } from "@/components/wallet/wallet-provider"
+import { useSuiWallet } from "@/components/wallet/sui-wallet-provider"
 import { useToast } from "@/hooks/use-toast"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Transaction } from "@mysten/sui/transactions"
+import SuiEscrow from "./sui-escrow"
 
 interface EscrowJob {
   id: string
@@ -20,33 +23,38 @@ interface EscrowJob {
 }
 
 export default function EscrowManager() {
-  const { isConnected, signTransaction } = useWallet()
+  const { isConnected, signTransaction, provider } = useSuiWallet()
   const { toast } = useToast()
   const [isProcessing, setIsProcessing] = useState<string | null>(null)
 
-  // Mock escrow data
-  const escrowJobs: EscrowJob[] = [
-    {
-      id: "1",
-      title: "Build DeFi Dashboard",
-      amount: 250,
-      status: "in_progress",
-      client: "0x1234...5678",
-      freelancer: "0xabcd...efgh",
-      createdAt: "2024-01-15",
-      deadline: "2024-02-15",
-    },
-    {
-      id: "2",
-      title: "Smart Contract Audit",
-      amount: 500,
-      status: "completed",
-      client: "0x1234...5678",
-      freelancer: "0xabcd...efgh",
-      createdAt: "2024-01-10",
-      deadline: "2024-01-17",
-    },
-  ]
+  // State for escrow jobs
+  const [escrowJobs, setEscrowJobs] = useState<EscrowJob[]>([])
+  
+  // Fetch escrow jobs from the blockchain
+  useEffect(() => {
+    const fetchEscrowJobs = async () => {
+      if (!isConnected || !provider) return;
+      
+      try {
+        // This would be replaced with actual blockchain calls to fetch escrow data
+        // For example, you might query events or objects owned by the user
+        // This is just a placeholder for the real implementation
+        console.log("Fetching escrow jobs from blockchain...");
+        
+        // Leave the array empty for now - it will be populated with real data
+        setEscrowJobs([]);
+      } catch (error) {
+        console.error("Error fetching escrow jobs:", error);
+        toast({
+          title: "Error",
+          description: "Failed to fetch escrow jobs from the blockchain",
+          variant: "destructive",
+        });
+      }
+    };
+    
+    fetchEscrowJobs();
+  }, [isConnected, provider, toast]);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -78,7 +86,7 @@ export default function EscrowManager() {
     }
   }
 
-  const releaseEscrow = async (jobId: string) => {
+  const releaseEscrow = async (jobId: string, freelancerAddress: string) => {
     if (!isConnected) {
       toast({
         title: "Wallet Not Connected",
@@ -90,17 +98,34 @@ export default function EscrowManager() {
 
     setIsProcessing(jobId)
     try {
-      // Mock transaction
-      const txHash = await signTransaction({ type: "release_escrow", jobId })
+      // Create a transaction to release funds from escrow
+      const tx = new Transaction();
+      
+      // Call release_funds and get the coin
+      const coin = tx.moveCall({
+        target: `${process.env.NEXT_PUBLIC_SUIWORK_PACKAGE_ID}::escrow::release_funds`,
+        arguments: [tx.object(jobId)],
+      });
+      
+      // Transfer the coin to the freelancer
+      tx.transferObjects([coin], tx.pure(freelancerAddress));
+      
+      // Execute the transaction
+      const txHash = await signTransaction({
+        type: "call_contract",
+        target: `${process.env.NEXT_PUBLIC_SUIWORK_PACKAGE_ID}::escrow::release_funds`,
+        arguments: [tx.object(jobId)]
+      });
 
       toast({
         title: "Escrow Released!",
         description: `Funds have been released to the freelancer. Transaction: ${txHash}`,
       })
     } catch (error) {
+      console.error("Error releasing escrow:", error);
       toast({
         title: "Transaction Failed",
-        description: "Failed to release escrow. Please try again.",
+        description: `Failed to release escrow: ${error instanceof Error ? error.message : String(error)}`,
         variant: "destructive",
       })
     } finally {
@@ -115,56 +140,17 @@ export default function EscrowManager() {
         <p className="text-cyan-100/80">Manage your smart contract escrow payments</p>
       </div>
 
-      {escrowJobs.map((job) => (
-        <Card key={job.id} className="bg-gray-900/50 border-cyan-500/20">
-          <CardHeader>
-            <div className="flex justify-between items-start">
-              <div>
-                <CardTitle className="text-cyan-100 text-xl mb-2">{job.title}</CardTitle>
-                <div className="flex items-center space-x-4 text-sm text-cyan-100/70">
-                  <span>Client: {job.client}</span>
-                  <span>Created: {job.createdAt}</span>
-                  <span>Deadline: {job.deadline}</span>
-                </div>
-              </div>
-              <div className="text-right">
-                <div className="text-2xl font-bold text-cyan-400 flex items-center">
-                  <DollarSign size={20} />
-                  {job.amount} SUI
-                </div>
-                <Badge className={`${getStatusColor(job.status)} mt-2`}>
-                  {getStatusIcon(job.status)}
-                  <span className="ml-1 capitalize">{job.status.replace("_", " ")}</span>
-                </Badge>
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="flex justify-between items-center">
-              <div className="text-sm text-cyan-100/70">
-                <p>Freelancer: {job.freelancer}</p>
-              </div>
-
-              {job.status === "in_progress" && (
-                <Button
-                  onClick={() => releaseEscrow(job.id)}
-                  disabled={isProcessing === job.id}
-                  className="bg-green-600 hover:bg-green-700 text-white"
-                >
-                  {isProcessing === job.id ? "Processing..." : "Release Escrow"}
-                </Button>
-              )}
-
-              {job.status === "completed" && (
-                <Badge className="bg-green-500/20 text-green-400">
-                  <CheckCircle size={16} className="mr-1" />
-                  Funds Released
-                </Badge>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-      ))}
+      <Tabs defaultValue="sui" className="w-full">
+        <TabsList className="grid w-full grid-cols-1 mb-6">
+          <TabsTrigger value="sui">Sui Blockchain Escrow</TabsTrigger>
+        </TabsList>
+        
+        <TabsContent value="sui">
+          <div className="max-w-3xl mx-auto">
+            <SuiEscrow />
+          </div>
+        </TabsContent>
+      </Tabs>
     </div>
   )
 }

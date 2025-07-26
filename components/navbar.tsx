@@ -5,14 +5,17 @@ import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { useUser } from "@/components/providers/user-provider"
-import { useWallet } from "@/components/wallet/wallet-provider"
+import { SuiConnectButton } from "@/components/wallet/sui-connect-button"
+import { useSuiWallet } from "@/hooks/use-sui-wallet"
+import { useWallets } from "@mysten/dapp-kit"
 import { Menu, X, User, LogOut, RefreshCw } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 
 export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false)
   const { user, logout } = useUser()
-  const { isConnected, disconnect, address, balance } = useWallet()
+  const { isConnected, address, balance } = useSuiWallet()
+  const wallets = useWallets()
   const { toast } = useToast()
   const router = useRouter()
 
@@ -30,9 +33,18 @@ export default function Navbar() {
     setIsOpen(false)
   }
 
-  const handleDisconnectWallet = () => {
+  const handleDisconnectWallet = async () => {
     logout()
-    disconnect()
+    
+    // Disconnect the current wallet if available
+    if (wallets.length > 0 && wallets[0]) {
+      try {
+        await wallets[0].disconnect();
+      } catch (error) {
+        console.error("Error disconnecting wallet:", error);
+      }
+    }
+    
     toast({
       title: "Wallet Disconnected",
       description: "Your wallet has been disconnected.",
@@ -136,7 +148,7 @@ export default function Navbar() {
                 <Button className="bg-cyan-600 hover:bg-cyan-700">Get Started</Button>
               </Link>
             ) : (
-              <Button className="bg-cyan-600 hover:bg-cyan-700">Connect Wallet</Button>
+              <SuiConnectButton />
             )}
           </div>
 
@@ -221,7 +233,9 @@ export default function Navbar() {
                   <Button className="w-full bg-cyan-600 hover:bg-cyan-700">Get Started</Button>
                 </Link>
               ) : (
-                <Button className="w-full bg-cyan-600 hover:bg-cyan-700">Connect Wallet</Button>
+                <div className="w-full">
+                  <SuiConnectButton />
+                </div>
               )}
             </div>
           </div>

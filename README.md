@@ -506,6 +506,13 @@ interface ReputationContract {
 ### Project Documentation
 
 - **Escrow Testing Guide**: [docs/escrow-testing-guide.md](docs/escrow-testing-guide.md) - Step-by-step guide for testing the escrow smart contract functionality
+- **Database Scripts**: [scripts/README.md](scripts/README.md) - Information about database schema update scripts
+
+### Database Management
+
+If you encounter database-related errors, you may need to update your database schema:
+
+1. **Update Proposals Table**: If you see errors related to missing columns in the proposals table, run the SQL script at [scripts/update-proposals-schema.sql](scripts/update-proposals-schema.sql) in your Supabase SQL Editor.
 
 ## 📄 License
 

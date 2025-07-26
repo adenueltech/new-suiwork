@@ -83,15 +83,29 @@ export default function ClientDashboard() {
           .filter((job) => job.status === "completed")
           .reduce((sum, job) => sum + (job.budget || 0), 0)
 
-        // Get count of new proposals
-        const { count: newProposalsCount, error: proposalsError } = await supabase
-          .from("proposals")
-          .select("*", { count: "exact", head: true })
-          .eq("client_id", user.id)
-          .eq("is_read", false)
+        // Check if the proposals table has the required columns
+        const { data: columnInfo, error: columnError } = await supabase
+          .from('proposals')
+          .select('*')
+          .limit(1)
+          .maybeSingle()
+        
+        let newProposalsCount = 0
+        
+        // Only query for unread proposals if the client_id and is_read columns exist
+        if (columnInfo && 'client_id' in columnInfo && 'is_read' in columnInfo) {
+          // Get count of new proposals
+          const { count, error: proposalsError } = await supabase
+            .from("proposals")
+            .select("*", { count: "exact", head: true })
+            .eq("client_id", user.id)
+            .eq("is_read", false)
 
-        if (proposalsError) {
-          console.error("Error loading proposals count:", proposalsError)
+          if (proposalsError) {
+            console.error("Error loading proposals count:", proposalsError)
+          } else {
+            newProposalsCount = count || 0
+          }
         }
 
         setStats({
@@ -99,7 +113,7 @@ export default function ClientDashboard() {
           activeJobs,
           completedJobs,
           totalSpent,
-          newProposals: newProposalsCount || 0
+          newProposals: newProposalsCount
         })
       }
     } catch (error) {

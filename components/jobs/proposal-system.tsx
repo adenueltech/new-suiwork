@@ -122,22 +122,61 @@ export default function ProposalSystem({ jobId, jobTitle, isJobOwner = false }: 
         throw new Error("Could not find job details")
       }
       
+      // Check if the proposals table has the required columns
+      const { data: columnInfo, error: columnError } = await supabase
+        .from('proposals')
+        .select('*')
+        .limit(1)
+        .maybeSingle()
+      
+      // Create a proposal object with required fields
+      const proposalData: any = {
+        job_id: jobId,
+        freelancer_id: user.id,
+        status: "pending"
+      }
+      
+      // Add budget field (could be budget or proposed_budget)
+      if (columnInfo && 'proposed_budget' in columnInfo) {
+        proposalData.proposed_budget = parseFloat(budget)
+      } else {
+        proposalData.budget = parseFloat(budget)
+      }
+      
+      // Add timeline field (could be timeline or proposed_timeline)
+      if (columnInfo && 'proposed_timeline' in columnInfo) {
+        proposalData.proposed_timeline = timeline
+      } else {
+        proposalData.timeline = timeline
+      }
+      
+      // Add cover letter field
+      if (columnInfo && 'cover_letter' in columnInfo) {
+        proposalData.cover_letter = coverLetter
+      } else {
+        // Fallback to description if cover_letter doesn't exist
+        proposalData.description = coverLetter
+      }
+      
+      // Add freelancer_name if the column exists
+      if (columnInfo && 'freelancer_name' in columnInfo) {
+        proposalData.freelancer_name = user.username
+      }
+      
+      // Add client_id if the column exists
+      if (columnInfo && 'client_id' in columnInfo) {
+        proposalData.client_id = jobData.client_id
+      }
+      
+      // Add is_read if the column exists
+      if (columnInfo && 'is_read' in columnInfo) {
+        proposalData.is_read = false
+      }
+      
       // Save proposal to database
       const { error } = await supabase
         .from("proposals")
-        .insert([
-          {
-            job_id: jobId,
-            freelancer_id: user.id,
-            freelancer_name: user.username,
-            proposed_budget: parseFloat(budget),
-            proposed_timeline: timeline,
-            cover_letter: coverLetter,
-            client_id: jobData.client_id,
-            status: "pending",
-            is_read: false
-          }
-        ])
+        .insert([proposalData])
       
       if (error) throw error
 

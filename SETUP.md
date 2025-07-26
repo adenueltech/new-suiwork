@@ -60,10 +60,13 @@ CREATE TABLE proposals (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   job_id UUID REFERENCES jobs(id) ON DELETE CASCADE,
   freelancer_id UUID REFERENCES users(id) ON DELETE CASCADE,
-  budget DECIMAL(10,2) NOT NULL,
-  timeline TEXT NOT NULL,
+  client_id UUID REFERENCES users(id) ON DELETE CASCADE,
+  proposed_budget DECIMAL(10,2) NOT NULL,
+  proposed_timeline TEXT NOT NULL,
   cover_letter TEXT NOT NULL,
+  freelancer_name TEXT,
   status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'accepted', 'rejected')),
+  is_read BOOLEAN DEFAULT FALSE,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
@@ -120,6 +123,7 @@ CREATE INDEX idx_jobs_client_id ON jobs(client_id);
 CREATE INDEX idx_jobs_status ON jobs(status);
 CREATE INDEX idx_proposals_job_id ON proposals(job_id);
 CREATE INDEX idx_proposals_freelancer_id ON proposals(freelancer_id);
+CREATE INDEX idx_proposals_client_id ON proposals(client_id);
 CREATE INDEX idx_messages_conversation_id ON messages(conversation_id);
 CREATE INDEX idx_creator_nfts_creator_id ON creator_nfts(creator_id);
 CREATE INDEX idx_reputation_nfts_user_id ON reputation_nfts(user_id);

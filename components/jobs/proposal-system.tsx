@@ -137,27 +137,18 @@ export default function ProposalSystem({ jobId, jobTitle, isJobOwner = false }: 
         status: "pending"
       }
       
-      // Add budget field (could be budget or proposed_budget)
-      if (columnInfo && 'proposed_budget' in columnInfo) {
-        proposalDataToInsert.proposed_budget = parseFloat(budget)
-      } else {
-        proposalDataToInsert.budget = parseFloat(budget)
-      }
+      // Add budget field (always set both budget and proposed_budget)
+      const budgetValue = parseFloat(budget);
+      proposalDataToInsert.budget = budgetValue;
+      proposalDataToInsert.proposed_budget = budgetValue;
       
-      // Add timeline field (could be timeline or proposed_timeline)
-      if (columnInfo && 'proposed_timeline' in columnInfo) {
-        proposalDataToInsert.proposed_timeline = timeline
-      } else {
-        proposalDataToInsert.timeline = timeline
-      }
+      // Add timeline field (always set both timeline and proposed_timeline)
+      proposalDataToInsert.timeline = timeline;
+      proposalDataToInsert.proposed_timeline = timeline;
       
-      // Add cover letter field
-      if (columnInfo && 'cover_letter' in columnInfo) {
-        proposalDataToInsert.cover_letter = coverLetter
-      } else {
-        // Fallback to description if cover_letter doesn't exist
-        proposalDataToInsert.description = coverLetter
-      }
+      // Add cover letter field (always set both cover_letter and description)
+      proposalDataToInsert.cover_letter = coverLetter;
+      proposalDataToInsert.description = coverLetter;
       
       // Add freelancer_name if the column exists
       if (columnInfo && 'freelancer_name' in columnInfo) {

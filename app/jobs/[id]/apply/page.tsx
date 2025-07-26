@@ -8,9 +8,11 @@ import { Textarea } from "@/components/ui/textarea"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
-import { ArrowLeft } from "lucide-react"
+import { ArrowLeft, AlertCircle } from "lucide-react"
 import { supabase } from "@/lib/supabase"
 import { useToast } from "@/hooks/use-toast"
+import { useUser } from "@/components/providers/user-provider"
+import { useWallet } from "@/components/wallet/wallet-provider"
 import Navbar from "@/components/navbar"
 import Footer from "@/components/footer"
 import Link from "next/link"
@@ -26,6 +28,8 @@ export default function JobApplyPage() {
   const router = useRouter()
   const jobId = params?.id as string
   const { toast } = useToast()
+  const { user } = useUser()
+  const { address, isConnected } = useWallet()
   const [job, setJob] = useState<Job | null>(null)
   const [loading, setLoading] = useState(true)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -68,28 +72,28 @@ export default function JobApplyPage() {
 
   const submitApplication = async () => {
     if (!job) return
+    
+    if (!isConnected || !address) {
+      toast({
+        title: "Wallet Not Connected",
+        description: "Please connect your wallet to submit an application",
+        variant: "destructive",
+      })
+      return
+    }
+    
+    if (!user) {
+      toast({
+        title: "Not Logged In",
+        description: "Please make sure you're logged in as a freelancer to submit an application",
+        variant: "destructive",
+      })
+      return
+    }
 
     setIsSubmitting(true)
     try {
       const { budget, timeline, coverLetter } = applicationData
-      
-      // Get current user
-      const { data: { user: authUser } } = await supabase.auth.getUser()
-      
-      if (!authUser) {
-        throw new Error("You must be logged in to submit an application")
-      }
-      
-      // Get user profile
-      const { data: userData, error: userError } = await supabase
-        .from("users")
-        .select("id, username")
-        .eq("wallet_address", authUser.id)
-        .single()
-        
-      if (userError || !userData) {
-        throw new Error("Could not find your user profile")
-      }
       
       // Save application to proposals table
       const { data, error } = await supabase
@@ -97,8 +101,8 @@ export default function JobApplyPage() {
         .insert([
           {
             job_id: jobId,
-            freelancer_id: userData.id,
-            freelancer_name: userData.username,
+            freelancer_id: user.id,
+            freelancer_name: user.username,
             proposed_budget: parseFloat(budget),
             proposed_timeline: timeline,
             cover_letter: coverLetter,
@@ -157,6 +161,24 @@ export default function JobApplyPage() {
             <h2 className="text-2xl font-bold text-white mb-2">Apply for Job</h2>
             {job && <p className="text-cyan-100/80">Send your application for "{job.title}"</p>}
           </div>
+          
+          {!isConnected && (
+            <Card className="bg-yellow-900/20 border-yellow-500/50 mb-6">
+              <CardContent className="p-4 flex items-center">
+                <AlertCircle className="h-5 w-5 text-yellow-400 mr-2" />
+                <p className="text-yellow-300">Please connect your wallet to submit an application.</p>
+              </CardContent>
+            </Card>
+          )}
+          
+          {isConnected && !user && (
+            <Card className="bg-yellow-900/20 border-yellow-500/50 mb-6">
+              <CardContent className="p-4 flex items-center">
+                <AlertCircle className="h-5 w-5 text-yellow-400 mr-2" />
+                <p className="text-yellow-300">Please make sure you're logged in as a freelancer to submit an application.</p>
+              </CardContent>
+            </Card>
+          )}
 
           <Card className="bg-gray-900/50 border-cyan-500/20">
             <CardHeader>
@@ -217,7 +239,7 @@ export default function JobApplyPage() {
 
               <Button
                 onClick={submitApplication}
-                disabled={isSubmitting || !applicationData.budget || !applicationData.timeline || !applicationData.coverLetter}
+                disabled={isSubmitting || !applicationData.budget || !applicationData.timeline || !applicationData.coverLetter || !isConnected || !user}
                 className="w-full bg-cyan-600 hover:bg-cyan-700 text-white py-3 text-lg font-semibold"
               >
                 {isSubmitting ? "Submitting Application..." : "Submit Application"}

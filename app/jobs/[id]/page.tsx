@@ -412,8 +412,8 @@ export default function JobDetailsPage() {
                 </div>
                 {user?.role === "freelancer" && (
                   <Link href={`/jobs/${job.id}/apply`}>
-                    <Button className="bg-cyan-600 hover:bg-cyan-700 text-white">
-                      Apply
+                    <Button className="bg-cyan-600 hover:bg-cyan-700 text-white py-2 px-4 text-base font-semibold">
+                      Apply for Job
                     </Button>
                   </Link>
                 )}
@@ -642,7 +642,7 @@ export default function JobDetailsPage() {
                   {user?.role === "freelancer" && (
                     <Link href={`/jobs/${job.id}/apply`}>
                       <Button className="w-full bg-cyan-600 hover:bg-cyan-700 text-white py-3 text-lg font-semibold">
-                        Apply
+                        Apply for Job
                       </Button>
                     </Link>
                   )}

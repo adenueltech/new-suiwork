@@ -1,25 +1,95 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
-import { createEscrow, lockFunds, releaseFunds } from "@/lib/sui";
+import { createEscrow, lockFunds, releaseFunds, checkNetworkConnection } from "@/lib/sui";
 import { useSuiWallet } from "@/components/wallet/sui-wallet-provider";
 import { Transaction } from "@mysten/sui/transactions";
 import { useToast } from "@/hooks/use-toast";
+import { useNetworkErrorHandler, setupNetworkListeners, isOnline } from "@/lib/error-handling";
+import { AlertCircle, WifiOff } from "lucide-react";
 
 export default function SuiEscrow() {
   const { isConnected, address, provider, signTransaction } = useSuiWallet();
   const { toast } = useToast();
+  const { handleNetworkError } = useNetworkErrorHandler();
   const [jobId, setJobId] = useState<number>(0);
   const [freelancerAddress, setFreelancerAddress] = useState<string>("");
   const [amount, setAmount] = useState<number>(0);
   const [escrowId, setEscrowId] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(false);
+  const [networkAvailable, setNetworkAvailable] = useState<boolean>(true);
+  const [isOnlineStatus, setIsOnlineStatus] = useState<boolean>(true);
+
+  // Check network connection on mount
+  useEffect(() => {
+    const checkConnection = async () => {
+      const online = isOnline();
+      setIsOnlineStatus(online);
+      
+      if (online) {
+        const available = await checkNetworkConnection();
+        setNetworkAvailable(available);
+        
+        if (!available) {
+          toast({
+            title: "Blockchain Network Unavailable",
+            description: "Unable to connect to the Sui blockchain. Some features may not work correctly.",
+            variant: "destructive",
+          });
+        }
+      }
+    };
+    
+    checkConnection();
+    
+    // Setup network listeners
+    const cleanup = setupNetworkListeners(
+      // Offline handler
+      () => {
+        setIsOnlineStatus(false);
+        toast({
+          title: "You're Offline",
+          description: "Please check your internet connection to continue using blockchain features.",
+          variant: "destructive",
+        });
+      },
+      // Online handler
+      () => {
+        setIsOnlineStatus(true);
+        toast({
+          title: "You're Back Online",
+          description: "Reconnected to the internet. Blockchain features are now available.",
+        });
+        checkConnection();
+      }
+    );
+    
+    return cleanup;
+  }, [toast]);
 
   const handleCreateEscrow = async () => {
+    if (!isOnlineStatus) {
+      toast({
+        title: "You're Offline",
+        description: "Please check your internet connection to continue.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!networkAvailable) {
+      toast({
+        title: "Blockchain Network Unavailable",
+        description: "Unable to connect to the Sui blockchain. Please try again later.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     if (!isConnected || !address) {
       toast({
         title: "Wallet Not Connected",
@@ -67,36 +137,16 @@ export default function SuiEscrow() {
       });
       
       // Extract the escrow object ID from the transaction result
-      // The transaction digest is returned, but we need to query for created objects
       if (result && provider) {
         try {
           // For simplicity, we'll just store the transaction digest
-          // In a real app, you would query for the created objects
           setEscrowId(result);
           toast({
             title: "Escrow Created Successfully!",
             description: `Transaction ID: ${result}`,
           });
-          
-          // Note: The following code would need to be updated to use the correct API
-          // This is commented out as the current SuiClient doesn't have getTransaction method
-          /*
-          const txDetails = await provider.getTransaction({
-            digest: result,
-            options: { showEffects: true, showEvents: true }
-          });
-          
-          if (txDetails.effects?.created && txDetails.effects.created.length > 0) {
-            const escrowObject = txDetails.effects.created[0];
-            setEscrowId(escrowObject.reference.objectId);
-          */
         } catch (error) {
-          console.error("Error processing transaction result:", error);
-          toast({
-            title: "Transaction Successful",
-            description: `Error processing result: ${error instanceof Error ? error.message : String(error)}`,
-            variant: "destructive",
-          });
+          handleNetworkError(error, "Transaction Processing Error");
         }
       } else {
         toast({
@@ -106,18 +156,31 @@ export default function SuiEscrow() {
         });
       }
     } catch (error) {
-      console.error("Error creating escrow:", error);
-      toast({
-        title: "Error Creating Escrow",
-        description: `${error instanceof Error ? error.message : String(error)}`,
-        variant: "destructive",
-      });
+      handleNetworkError(error, "Error Creating Escrow");
     } finally {
       setLoading(false);
     }
   };
 
   const handleLockFunds = async () => {
+    if (!isOnlineStatus) {
+      toast({
+        title: "You're Offline",
+        description: "Please check your internet connection to continue.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!networkAvailable) {
+      toast({
+        title: "Blockchain Network Unavailable",
+        description: "Unable to connect to the Sui blockchain. Please try again later.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     if (!isConnected || !address) {
       toast({
         title: "Wallet Not Connected",
@@ -170,18 +233,31 @@ export default function SuiEscrow() {
         description: "Funds locked successfully!",
       });
     } catch (error) {
-      console.error("Error locking funds:", error);
-      toast({
-        title: "Error Locking Funds",
-        description: `${error instanceof Error ? error.message : String(error)}`,
-        variant: "destructive",
-      });
+      handleNetworkError(error, "Error Locking Funds");
     } finally {
       setLoading(false);
     }
   };
 
   const handleReleaseFunds = async () => {
+    if (!isOnlineStatus) {
+      toast({
+        title: "You're Offline",
+        description: "Please check your internet connection to continue.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!networkAvailable) {
+      toast({
+        title: "Blockchain Network Unavailable",
+        description: "Unable to connect to the Sui blockchain. Please try again later.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     if (!isConnected || !address) {
       toast({
         title: "Wallet Not Connected",
@@ -231,12 +307,7 @@ export default function SuiEscrow() {
         description: "Funds released successfully!",
       });
     } catch (error) {
-      console.error("Error releasing funds:", error);
-      toast({
-        title: "Error Releasing Funds",
-        description: `${error instanceof Error ? error.message : String(error)}`,
-        variant: "destructive",
-      });
+      handleNetworkError(error, "Error Releasing Funds");
     } finally {
       setLoading(false);
     }
@@ -251,6 +322,20 @@ export default function SuiEscrow() {
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
+        {!isOnlineStatus && (
+          <div className="p-4 bg-red-50 border border-red-200 rounded-md text-red-800 mb-4 flex items-center">
+            <WifiOff className="h-5 w-5 mr-2" />
+            <span>You are currently offline. Please check your internet connection.</span>
+          </div>
+        )}
+        
+        {isOnlineStatus && !networkAvailable && (
+          <div className="p-4 bg-orange-50 border border-orange-200 rounded-md text-orange-800 mb-4 flex items-center">
+            <AlertCircle className="h-5 w-5 mr-2" />
+            <span>Blockchain network is currently unavailable. Some features may not work correctly.</span>
+          </div>
+        )}
+        
         {!isConnected ? (
           <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-md text-yellow-800 mb-4">
             Please connect your Sui wallet to use the escrow system.

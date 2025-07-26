@@ -54,18 +54,34 @@ export default function RoleSelection({
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-black to-gray-900 flex items-center justify-center p-4">
-      <div className="w-full max-w-4xl">
-        <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold text-white mb-4">
-            {isExistingUser ? "Choose Your New Role" : "Choose Your Role"}
-          </h1>
-          <p className="text-gray-400 text-lg">
-            {isExistingUser
-              ? "Select a new role to switch your account type"
-              : "Select how you want to participate in the SuiWork ecosystem"}
-          </p>
+    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-black to-gray-900 flex flex-col p-4">
+      {/* Logo and Back Button Header */}
+      <div className="w-full max-w-4xl mx-auto flex items-center justify-between py-4">
+        <div className="flex items-center">
+          <img src="/placeholder-logo.svg" alt="SuiWork Logo" className="h-10 w-auto" />
         </div>
+        <Button
+          onClick={handleGoBack}
+          variant="ghost"
+          className="text-gray-300 hover:text-white hover:bg-gray-800"
+        >
+          <ArrowLeft className="mr-2 h-4 w-4" />
+          Back
+        </Button>
+      </div>
+      
+      <div className="flex-grow flex items-center justify-center">
+        <div className="w-full max-w-4xl">
+          <div className="text-center mb-8">
+            <h1 className="text-4xl font-bold text-white mb-4">
+              {isExistingUser ? "Choose Your New Role" : "Choose Your Role"}
+            </h1>
+            <p className="text-gray-400 text-lg">
+              {isExistingUser
+                ? "Select a new role to switch your account type"
+                : "Select how you want to participate in the SuiWork ecosystem"}
+            </p>
+          </div>
 
         <div className="grid md:grid-cols-3 gap-6 mb-8">
           {roles.map((role) => {
@@ -119,16 +135,7 @@ export default function RoleSelection({
           })}
         </div>
 
-        <div className="flex justify-center space-x-4">
-          <Button
-            onClick={handleGoBack}
-            variant="outline"
-            className="border-gray-600 text-gray-300 hover:bg-gray-700 bg-transparent"
-          >
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Back
-          </Button>
-
+        <div className="flex justify-center">
           <Button
             onClick={() => selectedRole && onRoleSelect(selectedRole)}
             disabled={!selectedRole || isCreating}
@@ -147,6 +154,8 @@ export default function RoleSelection({
           </Button>
         </div>
       </div>
+      
+    </div>
     </div>
   )
 }

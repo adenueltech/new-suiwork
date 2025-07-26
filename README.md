@@ -503,6 +503,10 @@ interface ReputationContract {
 - **shadcn/ui**: [ui.shadcn.com](https://ui.shadcn.com)
 - **SUI Blockchain**: [docs.sui.io](https://docs.sui.io)
 
+### Project Documentation
+
+- **Escrow Testing Guide**: [docs/escrow-testing-guide.md](docs/escrow-testing-guide.md) - Step-by-step guide for testing the escrow smart contract functionality
+
 ## 📄 License
 
 This project is licensed under the MIT License - see the [LICENSE.md](LICENSE.md) file for details.

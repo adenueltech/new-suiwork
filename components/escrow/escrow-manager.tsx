@@ -4,12 +4,14 @@ import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Shield, Clock, CheckCircle, AlertCircle, DollarSign } from "lucide-react"
+import { Shield, Clock, CheckCircle, AlertCircle, DollarSign, WifiOff } from "lucide-react"
 import { useSuiWallet } from "@/components/wallet/sui-wallet-provider"
 import { useToast } from "@/hooks/use-toast"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Transaction } from "@mysten/sui/transactions"
 import SuiEscrow from "./sui-escrow"
+import { useNetworkErrorHandler, setupNetworkListeners, isOnline } from "@/lib/error-handling"
+import { checkNetworkConnection } from "@/lib/sui"
 
 interface EscrowJob {
   id: string
@@ -25,15 +27,65 @@ interface EscrowJob {
 export default function EscrowManager() {
   const { isConnected, signTransaction, provider } = useSuiWallet()
   const { toast } = useToast()
+  const { handleNetworkError } = useNetworkErrorHandler()
   const [isProcessing, setIsProcessing] = useState<string | null>(null)
+  const [networkAvailable, setNetworkAvailable] = useState<boolean>(true)
+  const [isOnlineStatus, setIsOnlineStatus] = useState<boolean>(true)
 
   // State for escrow jobs
   const [escrowJobs, setEscrowJobs] = useState<EscrowJob[]>([])
   
+  // Setup network status monitoring
+  useEffect(() => {
+    const checkConnection = async () => {
+      const online = isOnline();
+      setIsOnlineStatus(online);
+      
+      if (online) {
+        const available = await checkNetworkConnection();
+        setNetworkAvailable(available);
+        
+        if (!available) {
+          toast({
+            title: "Blockchain Network Unavailable",
+            description: "Unable to connect to the Sui blockchain. Some features may not work correctly.",
+            variant: "destructive",
+          });
+        }
+      }
+    };
+    
+    checkConnection();
+    
+    // Setup network listeners
+    const cleanup = setupNetworkListeners(
+      // Offline handler
+      () => {
+        setIsOnlineStatus(false);
+        toast({
+          title: "You're Offline",
+          description: "Please check your internet connection to continue using blockchain features.",
+          variant: "destructive",
+        });
+      },
+      // Online handler
+      () => {
+        setIsOnlineStatus(true);
+        toast({
+          title: "You're Back Online",
+          description: "Reconnected to the internet. Blockchain features are now available.",
+        });
+        checkConnection();
+      }
+    );
+    
+    return cleanup;
+  }, [toast]);
+  
   // Fetch escrow jobs from the blockchain
   useEffect(() => {
     const fetchEscrowJobs = async () => {
-      if (!isConnected || !provider) return;
+      if (!isConnected || !provider || !isOnlineStatus || !networkAvailable) return;
       
       try {
         // This would be replaced with actual blockchain calls to fetch escrow data
@@ -44,17 +96,12 @@ export default function EscrowManager() {
         // Leave the array empty for now - it will be populated with real data
         setEscrowJobs([]);
       } catch (error) {
-        console.error("Error fetching escrow jobs:", error);
-        toast({
-          title: "Error",
-          description: "Failed to fetch escrow jobs from the blockchain",
-          variant: "destructive",
-        });
+        handleNetworkError(error, "Failed to fetch escrow jobs");
       }
     };
     
     fetchEscrowJobs();
-  }, [isConnected, provider, toast]);
+  }, [isConnected, provider, isOnlineStatus, networkAvailable, handleNetworkError]);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -87,6 +134,24 @@ export default function EscrowManager() {
   }
 
   const releaseEscrow = async (jobId: string, freelancerAddress: string) => {
+    if (!isOnlineStatus) {
+      toast({
+        title: "You're Offline",
+        description: "Please check your internet connection to continue.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!networkAvailable) {
+      toast({
+        title: "Blockchain Network Unavailable",
+        description: "Unable to connect to the Sui blockchain. Please try again later.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     if (!isConnected) {
       toast({
         title: "Wallet Not Connected",
@@ -122,12 +187,7 @@ export default function EscrowManager() {
         description: `Funds have been released to the freelancer. Transaction: ${txHash}`,
       })
     } catch (error) {
-      console.error("Error releasing escrow:", error);
-      toast({
-        title: "Transaction Failed",
-        description: `Failed to release escrow: ${error instanceof Error ? error.message : String(error)}`,
-        variant: "destructive",
-      })
+      handleNetworkError(error, "Failed to Release Escrow");
     } finally {
       setIsProcessing(null)
     }
@@ -139,6 +199,20 @@ export default function EscrowManager() {
         <h2 className="text-2xl font-bold text-white mb-2">Escrow Management</h2>
         <p className="text-cyan-100/80">Manage your smart contract escrow payments</p>
       </div>
+
+      {!isOnlineStatus && (
+        <div className="p-4 bg-red-900/30 border border-red-700 rounded-md text-red-300 mb-4 flex items-center justify-center">
+          <WifiOff className="h-5 w-5 mr-2" />
+          <span>You are currently offline. Please check your internet connection.</span>
+        </div>
+      )}
+      
+      {isOnlineStatus && !networkAvailable && (
+        <div className="p-4 bg-orange-900/30 border border-orange-700 rounded-md text-orange-300 mb-4 flex items-center justify-center">
+          <AlertCircle className="h-5 w-5 mr-2" />
+          <span>Blockchain network is currently unavailable. Some features may not work correctly.</span>
+        </div>
+      )}
 
       <Tabs defaultValue="sui" className="w-full">
         <TabsList className="grid w-full grid-cols-1 mb-6">

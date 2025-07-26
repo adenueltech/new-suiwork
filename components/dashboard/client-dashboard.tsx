@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Plus, Briefcase, Users, DollarSign, Clock, Eye, Edit, MessageCircle, User } from "lucide-react"
+import { Plus, Briefcase, Users, DollarSign, Clock, Eye, Edit, MessageCircle, User, Bell } from "lucide-react"
 import { supabase } from "@/lib/supabase"
 import { useUser } from "@/components/providers/user-provider"
 import Link from "next/link"
@@ -26,6 +26,7 @@ interface DashboardStats {
   activeJobs: number
   completedJobs: number
   totalSpent: number
+  newProposals: number
 }
 
 export default function ClientDashboard() {
@@ -36,6 +37,7 @@ export default function ClientDashboard() {
     activeJobs: 0,
     completedJobs: 0,
     totalSpent: 0,
+    newProposals: 0
   })
   const [loading, setLoading] = useState(true)
 
@@ -81,11 +83,23 @@ export default function ClientDashboard() {
           .filter((job) => job.status === "completed")
           .reduce((sum, job) => sum + (job.budget || 0), 0)
 
+        // Get count of new proposals
+        const { count: newProposalsCount, error: proposalsError } = await supabase
+          .from("proposals")
+          .select("*", { count: "exact", head: true })
+          .eq("client_id", user.id)
+          .eq("is_read", false)
+
+        if (proposalsError) {
+          console.error("Error loading proposals count:", proposalsError)
+        }
+
         setStats({
           totalJobs,
           activeJobs,
           completedJobs,
           totalSpent,
+          newProposals: newProposalsCount || 0
         })
       }
     } catch (error) {
@@ -296,10 +310,15 @@ export default function ClientDashboard() {
                         <Button
                           variant="outline"
                           size="sm"
-                          className="border-gray-600 text-gray-300 hover:bg-gray-700 bg-transparent"
+                          className="border-gray-600 text-gray-300 hover:bg-gray-700 bg-transparent relative"
                         >
                           <MessageCircle className="h-4 w-4 mr-1" />
                           Proposals
+                          {stats.newProposals > 0 && (
+                            <span className="absolute -top-2 -right-2 bg-yellow-500 text-black text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                              {stats.newProposals}
+                            </span>
+                          )}
                         </Button>
                       </Link>
                       {job.status === "open" && (
@@ -346,6 +365,20 @@ export default function ClientDashboard() {
               >
                 <MessageCircle className="h-6 w-6 mb-2" />
                 View Messages
+              </Button>
+            </Link>
+            <Link href="/jobs">
+              <Button
+                variant="outline"
+                className="w-full h-20 border-gray-600 text-gray-300 hover:bg-gray-700 flex-col bg-transparent relative"
+              >
+                <Bell className="h-6 w-6 mb-2" />
+                View Proposals
+                {stats.newProposals > 0 && (
+                  <span className="absolute top-3 right-3 bg-yellow-500 text-black text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                    {stats.newProposals}
+                  </span>
+                )}
               </Button>
             </Link>
             <Link href="/profile">

@@ -411,9 +411,9 @@ export default function JobDetailsPage() {
                   </div>
                 </div>
                 {user?.role === "freelancer" && (
-                  <Link href={`/jobs/${job.id}/proposals`}>
+                  <Link href={`/jobs/${job.id}/apply`}>
                     <Button className="bg-cyan-600 hover:bg-cyan-700 text-white">
-                      Submit Proposal
+                      Apply
                     </Button>
                   </Link>
                 )}
@@ -640,9 +640,9 @@ export default function JobDetailsPage() {
                   </Card>
 
                   {user?.role === "freelancer" && (
-                    <Link href={`/jobs/${job.id}/proposals`}>
+                    <Link href={`/jobs/${job.id}/apply`}>
                       <Button className="w-full bg-cyan-600 hover:bg-cyan-700 text-white py-3 text-lg font-semibold">
-                        Submit Proposal
+                        Apply
                       </Button>
                     </Link>
                   )}

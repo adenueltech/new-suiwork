@@ -6,16 +6,14 @@ import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { useUser } from "@/components/providers/user-provider"
 import { SuiConnectButton } from "@/components/wallet/sui-connect-button"
-import { useSuiWallet } from "@/hooks/use-sui-wallet"
-import { useWallets } from "@mysten/dapp-kit"
+import { useWallet } from "@/components/wallet/wallet-provider"
 import { Menu, X, User, LogOut, RefreshCw } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 
 export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false)
   const { user, logout } = useUser()
-  const { isConnected, address, balance } = useSuiWallet()
-  const wallets = useWallets()
+  const { isConnected, address, balance } = useWallet()
   const { toast } = useToast()
   const router = useRouter()
 
@@ -36,19 +34,17 @@ export default function Navbar() {
   const handleDisconnectWallet = async () => {
     logout()
     
-    // Disconnect the current wallet if available
-    if (wallets.length > 0 && wallets[0]) {
-      try {
-        await wallets[0].disconnect();
-      } catch (error) {
-        console.error("Error disconnecting wallet:", error);
-      }
-    }
+    // The dApp Kit doesn't provide a direct disconnect method
+    // Instead, we'll just notify the user and reset the state
     
     toast({
       title: "Wallet Disconnected",
-      description: "Your wallet has been disconnected.",
+      description: "Your wallet has been disconnected from the application.",
     })
+    
+    // Refresh the page to reset the wallet connection state
+    window.location.reload()
+    
     setIsOpen(false)
   }
 

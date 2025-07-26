@@ -61,7 +61,9 @@ CREATE TABLE proposals (
   job_id UUID REFERENCES jobs(id) ON DELETE CASCADE,
   freelancer_id UUID REFERENCES users(id) ON DELETE CASCADE,
   client_id UUID REFERENCES users(id) ON DELETE CASCADE,
+  budget DECIMAL(10,2) NOT NULL,
   proposed_budget DECIMAL(10,2) NOT NULL,
+  timeline TEXT NOT NULL,
   proposed_timeline TEXT NOT NULL,
   cover_letter TEXT NOT NULL,
   freelancer_name TEXT,
@@ -69,6 +71,26 @@ CREATE TABLE proposals (
   is_read BOOLEAN DEFAULT FALSE,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
+
+-- Trigger to keep budget and proposed_budget in sync
+CREATE OR REPLACE FUNCTION sync_budget_columns()
+RETURNS TRIGGER AS $$
+BEGIN
+  IF TG_OP = 'INSERT' OR TG_OP = 'UPDATE' THEN
+    IF NEW.budget IS NULL AND NEW.proposed_budget IS NOT NULL THEN
+      NEW.budget := NEW.proposed_budget;
+    ELSIF NEW.proposed_budget IS NULL AND NEW.budget IS NOT NULL THEN
+      NEW.proposed_budget := NEW.budget;
+    END IF;
+  END IF;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER sync_budget_columns
+BEFORE INSERT OR UPDATE ON proposals
+FOR EACH ROW
+EXECUTE FUNCTION sync_budget_columns();
 
 -- Messages table
 CREATE TABLE messages (

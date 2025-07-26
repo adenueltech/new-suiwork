@@ -41,7 +41,7 @@ export default function ProposalSystem({ jobId, jobTitle, isJobOwner = false }: 
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   const [proposals, setProposals] = useState<Proposal[]>([])
-  const [proposalData, setProposalData] = useState({
+  const [formData, setFormData] = useState({
     budget: "",
     timeline: "",
     coverLetter: "",
@@ -109,7 +109,8 @@ export default function ProposalSystem({ jobId, jobTitle, isJobOwner = false }: 
     
     setIsSubmitting(true)
     try {
-      const { budget, timeline, coverLetter } = proposalData
+      // Get form values from the state
+      const { budget, timeline, coverLetter } = formData
       
       // Get job details to get client_id
       const { data: jobData, error: jobError } = await supabase
@@ -130,7 +131,7 @@ export default function ProposalSystem({ jobId, jobTitle, isJobOwner = false }: 
         .maybeSingle()
       
       // Create a proposal object with required fields
-      const proposalData: any = {
+      const proposalDataToInsert: any = {
         job_id: jobId,
         freelancer_id: user.id,
         status: "pending"
@@ -138,45 +139,45 @@ export default function ProposalSystem({ jobId, jobTitle, isJobOwner = false }: 
       
       // Add budget field (could be budget or proposed_budget)
       if (columnInfo && 'proposed_budget' in columnInfo) {
-        proposalData.proposed_budget = parseFloat(budget)
+        proposalDataToInsert.proposed_budget = parseFloat(budget)
       } else {
-        proposalData.budget = parseFloat(budget)
+        proposalDataToInsert.budget = parseFloat(budget)
       }
       
       // Add timeline field (could be timeline or proposed_timeline)
       if (columnInfo && 'proposed_timeline' in columnInfo) {
-        proposalData.proposed_timeline = timeline
+        proposalDataToInsert.proposed_timeline = timeline
       } else {
-        proposalData.timeline = timeline
+        proposalDataToInsert.timeline = timeline
       }
       
       // Add cover letter field
       if (columnInfo && 'cover_letter' in columnInfo) {
-        proposalData.cover_letter = coverLetter
+        proposalDataToInsert.cover_letter = coverLetter
       } else {
         // Fallback to description if cover_letter doesn't exist
-        proposalData.description = coverLetter
+        proposalDataToInsert.description = coverLetter
       }
       
       // Add freelancer_name if the column exists
       if (columnInfo && 'freelancer_name' in columnInfo) {
-        proposalData.freelancer_name = user.username
+        proposalDataToInsert.freelancer_name = user.username
       }
       
       // Add client_id if the column exists
       if (columnInfo && 'client_id' in columnInfo) {
-        proposalData.client_id = jobData.client_id
+        proposalDataToInsert.client_id = jobData.client_id
       }
       
       // Add is_read if the column exists
       if (columnInfo && 'is_read' in columnInfo) {
-        proposalData.is_read = false
+        proposalDataToInsert.is_read = false
       }
       
       // Save proposal to database
       const { error } = await supabase
         .from("proposals")
-        .insert([proposalData])
+        .insert([proposalDataToInsert])
       
       if (error) throw error
 
@@ -185,7 +186,7 @@ export default function ProposalSystem({ jobId, jobTitle, isJobOwner = false }: 
         description: "Your proposal has been sent to the client.",
       })
 
-      setProposalData({
+      setFormData({
         budget: "",
         timeline: "",
         coverLetter: "",
@@ -369,8 +370,8 @@ export default function ProposalSystem({ jobId, jobTitle, isJobOwner = false }: 
               <Input
                 id="budget"
                 type="number"
-                value={proposalData.budget}
-                onChange={(e) => setProposalData({ ...proposalData, budget: e.target.value })}
+                value={formData.budget}
+                onChange={(e) => setFormData({ ...formData, budget: e.target.value })}
                 placeholder="250"
                 className="bg-black/50 border-cyan-500/30 text-cyan-100 placeholder-cyan-100/50"
               />
@@ -382,8 +383,8 @@ export default function ProposalSystem({ jobId, jobTitle, isJobOwner = false }: 
               </Label>
               <Input
                 id="timeline"
-                value={proposalData.timeline}
-                onChange={(e) => setProposalData({ ...proposalData, timeline: e.target.value })}
+                value={formData.timeline}
+                onChange={(e) => setFormData({ ...formData, timeline: e.target.value })}
                 placeholder="2 weeks"
                 className="bg-black/50 border-cyan-500/30 text-cyan-100 placeholder-cyan-100/50"
               />
@@ -396,8 +397,8 @@ export default function ProposalSystem({ jobId, jobTitle, isJobOwner = false }: 
             </Label>
             <Textarea
               id="coverLetter"
-              value={proposalData.coverLetter}
-              onChange={(e) => setProposalData({ ...proposalData, coverLetter: e.target.value })}
+              value={formData.coverLetter}
+              onChange={(e) => setFormData({ ...formData, coverLetter: e.target.value })}
               placeholder="Explain why you're the best fit for this project..."
               className="bg-black/50 border-cyan-500/30 text-cyan-100 placeholder-cyan-100/50 min-h-[120px]"
             />
@@ -415,7 +416,7 @@ export default function ProposalSystem({ jobId, jobTitle, isJobOwner = false }: 
 
           <Button
             onClick={submitProposal}
-            disabled={isSubmitting || !proposalData.budget || !proposalData.timeline || !proposalData.coverLetter}
+            disabled={isSubmitting || !formData.budget || !formData.timeline || !formData.coverLetter}
             className="w-full bg-cyan-600 hover:bg-cyan-700 text-white py-3 text-lg font-semibold"
           >
             {isSubmitting ? "Submitting Proposal..." : "Submit Proposal"}

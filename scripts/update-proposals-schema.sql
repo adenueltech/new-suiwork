@@ -74,6 +74,46 @@ BEGIN
     END IF;
 END $$;
 
+-- Keep the budget column for backward compatibility
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1
+        FROM information_schema.columns
+        WHERE table_name = 'proposals' AND column_name = 'budget'
+    ) THEN
+        ALTER TABLE proposals ADD COLUMN budget DECIMAL(10,2);
+    END IF;
+END $$;
+
+-- Add trigger to keep budget and proposed_budget in sync
+DO $$
+BEGIN
+    -- Drop the trigger if it exists
+    DROP TRIGGER IF EXISTS sync_budget_columns ON proposals;
+    
+    -- Create the function
+    CREATE OR REPLACE FUNCTION sync_budget_columns()
+    RETURNS TRIGGER AS $$
+    BEGIN
+        IF TG_OP = 'INSERT' OR TG_OP = 'UPDATE' THEN
+            IF NEW.budget IS NULL AND NEW.proposed_budget IS NOT NULL THEN
+                NEW.budget := NEW.proposed_budget;
+            ELSIF NEW.proposed_budget IS NULL AND NEW.budget IS NOT NULL THEN
+                NEW.proposed_budget := NEW.budget;
+            END IF;
+        END IF;
+        RETURN NEW;
+    END;
+    $$ LANGUAGE plpgsql;
+    
+    -- Create the trigger
+    CREATE TRIGGER sync_budget_columns
+    BEFORE INSERT OR UPDATE ON proposals
+    FOR EACH ROW
+    EXECUTE FUNCTION sync_budget_columns();
+END $$;
+
 -- Add cover_letter column to proposals table if it doesn't exist
 DO $$
 BEGIN
